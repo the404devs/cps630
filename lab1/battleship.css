@@ -55,12 +55,17 @@ body {
 
 .cell.bang {
     animation: cellHighlight 0.6s ease-in-out;
-    background-color: goldenrod;
+    background-color: orange;
 }
 
 .cell.miss {
     background-color: cornflowerblue;
     animation: cellHighlight 0.6s ease-in-out;
+}
+
+.ship.warn {
+    animation: cellHighlight 0.6s ease-in-out;
+    background-color: red !important;
 }
 
 @keyframes cellHighlight {
@@ -172,6 +177,7 @@ body {
 }
 
 .status {
+    margin-bottom: 10px;
     flex-basis: 100%;
 }
 

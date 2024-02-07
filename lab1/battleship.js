@@ -107,6 +107,11 @@ function dragHandler(e) {
     if (e.which == 1 && mouseHeld) {
         let x = e.pageX - parseInt(ghostShip.style.width) / 2;
         let y = e.pageY - parseInt(ghostShip.style.height) / 2;
+
+        // let offsetX = grid1.offsetWidth % 40;
+        // let offsetY = grid1.offsetHeight % 40;
+        // x = offsetX - 40 + Math.ceil(x / 40) * 40;
+        // y = offsetY - 15 + Math.ceil(y / 40) * 40;
         ghostShip.style.left = `${x}px`;
         ghostShip.style.top = `${y}px`; 
     }
@@ -147,6 +152,14 @@ function dragEnd(e) {
                 let newGridRowStart = Math.ceil(targetedCellY - (shipHeight/2));
                 let newGridRowEnd = Math.ceil(targetedCellY + (shipHeight/2));
 
+                if ((shipGridColEnd - shipGridColStart) % 2 === 0) {
+                    newGridColStart++;
+                    newGridColEnd++;
+                }
+                if ((shipGridRowEnd - shipGridRowStart) % 2 === 0) {
+                    newGridRowStart++;
+                    newGridRowEnd++;
+                }
 
                 let i = dragShip.getAttribute('index');
                 const otherShips = dragShip.classList.contains('p1') ? p1Ships : p2Ships;
@@ -218,12 +231,20 @@ function rotateShip(ship) {
     const shipGridRowEnd = parseInt(dragShip.style.gridRowEnd);
 
     const centerX = (shipGridColStart + shipGridColEnd) / 2;
-    const centerY = (shipGridRowStart+ shipGridRowEnd) / 2;
+    const centerY = (shipGridRowStart + shipGridRowEnd) / 2;
 
-    let newGridColEnd = Math.ceil(centerX - (shipGridRowStart - centerY));
-    let newGridColStart = Math.ceil(centerX - (shipGridRowEnd - centerY));
-    let newGridRowStart = Math.ceil(centerY + (shipGridColStart - centerX));
-    let newGridRowEnd = Math.ceil(centerY + (shipGridColEnd - centerX));
+    let newGridColStart = Math.round(centerX - (shipGridRowEnd - centerY));
+    let newGridColEnd = Math.round(centerX - (shipGridRowStart - centerY));
+    let newGridRowStart = Math.round(centerY + (shipGridColStart - centerX));
+    let newGridRowEnd = Math.round(centerY + (shipGridColEnd - centerX));
+
+    // Check if the ship length is even, adjust for 180-degree rotation
+    if ((shipGridColEnd - shipGridColStart) % 2 === 0) {
+        newGridColStart--;
+        newGridColEnd--;
+        newGridRowStart--;
+        newGridRowEnd--;
+    }
 
     while (newGridColEnd > 11) {
         newGridColEnd--;
@@ -248,16 +269,14 @@ function rotateShip(ship) {
     let i = dragShip.getAttribute('index');
     const otherShips = dragShip.classList.contains('p1') ? p1Ships : p2Ships;
 
-    if (!checkOverlapping(otherShips, newGridColStart, newGridRowStart, newGridColEnd, newGridRowEnd, i)) {
-        
-    }
+    // if (!checkOverlapping(otherShips, newGridColStart, newGridRowStart, newGridColEnd, newGridRowEnd, i)) {
     dragShip.style.gridColumnStart = newGridColStart;
     dragShip.style.gridColumnEnd = newGridColEnd;
     dragShip.style.gridRowStart = newGridRowStart;
     dragShip.style.gridRowEnd = newGridRowEnd;
 
     otherShips[i] = [newGridColStart, newGridRowStart, newGridColEnd, newGridRowEnd];
-
+    // }
 }
 
 function keyHandler(e) {
@@ -284,6 +303,7 @@ function init() {
     p1Health.innerText = `${p1Ships.length} ships remaining.`;
     p2Health.innerText = `${p2Ships.length} ships remaining.`;
     setStatus("Position your ships! Press 'R' while moving a ship to rotate.");
+    dragEnabled = true;
     document.getElementById('reset-button').style.display = 'none';
 }
 
@@ -358,9 +378,7 @@ function cpuShoot() {
     do {
         x = rng(gridSize-1);
         y = rng(gridSize-1);
-        console.log(x,y);
         targetedCell = document.getElementById(`p1-[${x-1},${y-1}]`);
-        console.log(targetedCell);
     } while (targetedCell.className != "cell");
 
     // Check if the cell's coordinates overlap any of p2's ships
@@ -424,7 +442,28 @@ function countDeadShips(prefix, ships) {
     return destroyedShips;
 }
 
+function failsafe() {
+    document.querySelectorAll('.warn').forEach(cell => {cell.classList.remove('warn')});
+    let playerPlacementInvalid = false;
+    let i = 0;
+    p1Ships.forEach(ship => {
+        const [x1, y1, x2, y2] = ship;
+        if (checkOverlapping(p1Ships, x1, y1, x2, y2, i)){
+            playerPlacementInvalid = true;
+            const badShip = grid1.getElementsByClassName('ship')[i];
+            badShip.classList.add('warn');
+        }
+        i++;
+    });
+    if (playerPlacementInvalid) {
+        setTempStatus('You have overlapping ships! Please move them.');
+        return;
+    }
+}
+
 function runGame() {
+    failsafe();
+
     document.getElementById('ready-button').style.display = 'none';
     grid2.classList.add("selectable");
     dragEnabled = false;
@@ -433,7 +472,7 @@ function runGame() {
 }
 
 function gameOver(victor){
-    const msg = victor == 'p2' ? "Player wins!" : "Computer wins!"
+    const msg = victor == 'p1' ? "Player wins!" : "Computer wins!"
     setStatus(msg);
     playerCanShoot = false;
     document.getElementById('reset-button').style.display = 'block';
