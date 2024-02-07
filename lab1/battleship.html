@@ -1,0 +1,33 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Battleship Game</title>
+    <link rel="stylesheet" href="./battleship.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Player</h2>
+        <span class="health" id="p1-health"></span>
+        <div class="battleship-grid" id="grid-1" owner="p1"></div>
+    </div>
+
+    <div class="container">
+        <h2>Computer</h2>
+        <span class="health" id="p2-health"></span>
+        <div class="battleship-grid" id="grid-2" owner="p2"></div>
+    </div>
+
+    <div class="controls">
+        <span class="status" id="status"></span>
+        <button id="ready-button" onclick="runGame()">Ready!</button>
+        <button id="reset-button" onclick="init()">Reset!</button>
+    </div>
+    
+
+    <div class="ship" id="ghost"></div>
+
+    <script src="battleship.js"></script>
+</body>
+</html>
+
