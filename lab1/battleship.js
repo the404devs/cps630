@@ -26,6 +26,12 @@ let playerCanShoot = false;
 const p1Health = document.getElementById('p1-health');
 const p2Health = document.getElementById('p2-health');
 
+const p1Misses = document.getElementById('p1-misses');
+const p2Misses = document.getElementById('p2-misses');
+
+const p1Hits = document.getElementById('p1-hits');
+const p2Hits = document.getElementById('p2-hits');
+
 const turnCounter = document.getElementById('turn-counter');
 let turn = 0;
 
@@ -86,6 +92,18 @@ function spawnShips(target) {
         ship.addEventListener('mousedown', dragStart);
         target.appendChild(ship);
     });
+}
+
+function updateHitMissCount() {
+    const p1HitCount = grid2.querySelectorAll('.cell.bang').length;
+    const p1MissCount = grid2.querySelectorAll('.cell.miss').length;
+    const p2HitCount = grid1.querySelectorAll('.cell.bang').length;
+    const p2MissCount = grid1.querySelectorAll('.cell.miss').length;
+
+    p1Hits.innerText = `${p1HitCount} hits`;
+    p1Misses.innerText = `${p1MissCount} misses`;
+    p2Hits.innerText = `${p2HitCount} hits`;
+    p2Misses.innerText = `${p2MissCount} misses`;
 }
 
 function dragStart(e) {
@@ -252,39 +270,16 @@ function rotateShip(ship) {
         newGridRowStart--;
         newGridRowEnd--;
     }
-
-    // while (newGridColEnd > 11) {
-    //     console.log("oob adjust");
-    //     newGridColEnd--;
-    //     newGridColStart--;
-    // } 
-    // while (newGridRowEnd > 11) {
-    //     newGridRowEnd--;
-    //     newGridRowStart--;
-    // } 
-
-    // while (newGridColStart < 1) {
-    //     newGridColEnd++;
-    //     newGridColStart++;
-    // } 
-
-    // while (newGridRowStart < 1) {
-    //     newGridRowEnd++;
-    //     newGridRowStart++;
-    // } 
-
     
     let i = dragShip.getAttribute('index');
     const otherShips = dragShip.classList.contains('p1') ? p1Ships : p2Ships;
 
-    // if (!checkOverlapping(otherShips, newGridColStart, newGridRowStart, newGridColEnd, newGridRowEnd, i)) {
     dragShip.style.gridColumnStart = newGridColStart;
     dragShip.style.gridColumnEnd = newGridColEnd;
     dragShip.style.gridRowStart = newGridRowStart;
     dragShip.style.gridRowEnd = newGridRowEnd;
 
     otherShips[i] = [newGridColStart, newGridRowStart, newGridColEnd, newGridRowEnd];
-    // }
 }
 
 function keyHandler(e) {
@@ -301,7 +296,6 @@ function rng(max) {
     return Math.floor(Math.random() * (max+1) + 1);
 }
 
-
 function init() {
     generateGrid(grid1);
     generateGrid(grid2);
@@ -309,6 +303,7 @@ function init() {
     spawnShips(grid2);
     turn = 0;
     incrementTurnCounter();
+    updateHitMissCount();
     // turnCounter.innerText = "";
     p1Health.innerText = `${p1Ships.length} ships remaining.`;
     p2Health.innerText = `${p2Ships.length} ships remaining.`;
@@ -365,6 +360,8 @@ function cellClicked(e) {
                 splash.currentTime = 0;
                 splash.play();
             }
+
+            updateHitMissCount();
 
             // The player has taken their turn, so now it's the computer's turn.
             setTimeout(cpuTurn, 1500);
@@ -478,6 +475,7 @@ function cpuShoot() {
     // Return control to the player.
     playerCanShoot = true;
     grid2.classList.add("selectable");
+    updateHitMissCount();
     incrementTurnCounter();
 }
 
