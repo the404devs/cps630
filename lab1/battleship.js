@@ -26,6 +26,9 @@ let playerCanShoot = false;
 const p1Health = document.getElementById('p1-health');
 const p2Health = document.getElementById('p2-health');
 
+const turnCounter = document.getElementById('turn-counter');
+let turn = 0;
+
 const boom = new Audio("./assets/audio/boom.mp3");
 const splash = new Audio("./assets/audio/splash.mp3");
 
@@ -39,6 +42,7 @@ function generateGrid(target) {
             cell.style.gridRowStart = y+1;
             cell.classList.add('cell');
             cell.id = `${owner}-[${x},${y}]`;
+            cell.title = `[${x+1}, ${y+1}]`;
             cell.addEventListener('click', cellClicked);
 
             target.appendChild(cell);
@@ -299,7 +303,9 @@ function init() {
     generateGrid(grid2);
     spawnShips(grid1);
     spawnShips(grid2);
-
+    turn = 0;
+    incrementTurnCounter();
+    // turnCounter.innerText = "";
     p1Health.innerText = `${p1Ships.length} ships remaining.`;
     p2Health.innerText = `${p2Ships.length} ships remaining.`;
     setStatus("Position your ships! Press 'R' while moving a ship to rotate.");
@@ -371,17 +377,69 @@ function cpuTurn() {
 }
 
 function cpuShoot() {
-    if (grid1.querySelectorAll('.cell:not(.bang):not(.miss)').length == 0) {
+    if (    
+        grid1.querySelectorAll('.cell:not(.bang):not(.miss)').length == 0 || 
+        grid1.querySelectorAll('.ship:not(.dead)').length == 0
+        ) {
         return;
     }
-    let x, y, targetedCell;
-    do {
-        x = rng(gridSize-1);
-        y = rng(gridSize-1);
-        targetedCell = document.getElementById(`p1-[${x-1},${y-1}]`);
-    } while (targetedCell.className != "cell");
 
-    // Check if the cell's coordinates overlap any of p2's ships
+    console.log("");
+    console.log("");
+    console.log("");
+
+    const hits = grid1.querySelectorAll('.cell.bang:not(.dead)');
+    let x, y, targetedCell;
+    let foundSmartTarget = false;
+    if (hits.length != 0) {
+        console.log('Looking near hits');
+        const searchSpot = hits[Math.floor(Math.random()*hits.length)];
+        console.log(searchSpot);
+        console.log("------------------");
+
+        const searchX = parseInt(searchSpot.style.gridColumnStart);
+        const searchY = parseInt(searchSpot.style.gridRowStart);
+
+        let potentialTargets = [
+            [searchX+1, searchY],
+            [searchX, searchY+1],
+            [searchX-1, searchY],
+            [searchX, searchY-1]
+        ];
+
+        potentialTargets.sort(() => Math.random() - 0.5);
+
+        for (let i = 0; i < potentialTargets.length; i++) {
+            const [targetX, targetY] = potentialTargets[i];
+            console.log(`Targeting ${targetX}, ${targetY}`);
+
+            if (targetX < 1 || targetX >= 11 || targetY < 1 || targetY >= 11) {
+                continue;
+            } else {
+                targetedCell = document.getElementById(`p1-[${targetX-1},${targetY-1}]`);
+                console.log(targetedCell);
+                if (targetedCell.className == 'cell') {
+                    x = targetX;
+                    y = targetY;
+                    console.log("Found unshot tile, breaking");
+                    foundSmartTarget = true;
+                    break;
+                } 
+            }
+        }
+    } 
+    
+    if (!foundSmartTarget) {
+        console.log('Shooting blind');
+        do {
+            x = rng(gridSize-1);
+            y = rng(gridSize-1);
+            targetedCell = document.getElementById(`p1-[${x-1},${y-1}]`);
+        } while (targetedCell.className != "cell");
+    }
+    
+
+    // Check if the cell's coordinates overlap any of p1's ships
     if (checkOverlapping(p1Ships, x, y, x+1, y+1)) {
         // Display message indicating success
         setTempStatus(`BANG! Computer hit at [${x}, ${y}]`);
@@ -408,6 +466,12 @@ function cpuShoot() {
     // Return control to the player.
     playerCanShoot = true;
     grid2.classList.add("selectable");
+    incrementTurnCounter();
+}
+
+function incrementTurnCounter() {
+    turn++;
+    turnCounter.innerText = `Turn ${turn}`;
 }
 
 function countDeadShips(prefix, ships) {
@@ -419,12 +483,15 @@ function countDeadShips(prefix, ships) {
         const [x1, y1, x2, y2] = ship;
         let totalCells = (x2-x1) * (y2-y1);
         let hitCells = 0;
+
+        let cells = [];
         for (let i = x1; i < x2; i++) {
             for (let j = y1; j < y2; j++) {
                 const occupiedCell = document.getElementById(`${prefix}-[${i-1},${j-1}]`);
 
                 if (occupiedCell.classList.contains("bang")) {
                     hitCells++;
+                    cells.push(occupiedCell);
                 }
             }
         }
@@ -433,6 +500,8 @@ function countDeadShips(prefix, ships) {
             const target = grid.getElementsByClassName('ship')[index];
             target.classList.add('dead');
             destroyedShips++;
+
+            cells.forEach(cell => {cell.classList.add('dead')});
         }
         index++;
     });
@@ -472,8 +541,9 @@ function runGame() {
 }
 
 function gameOver(victor){
-    const msg = victor == 'p1' ? "Player wins!" : "Computer wins!"
+    const msg = victor == 'p1' ? "Player wins!" : "Computer wins!";
     setStatus(msg);
+    grid2.querySelectorAll('.ship').forEach(ship => {ship.classList.add('revealed')});
     playerCanShoot = false;
     document.getElementById('reset-button').style.display = 'block';
 }
