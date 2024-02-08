@@ -43,7 +43,10 @@ function generateGrid(target) {
             cell.classList.add('cell');
             cell.id = `${owner}-[${x},${y}]`;
             cell.title = `[${x+1}, ${y+1}]`;
-            cell.addEventListener('click', cellClicked);
+
+            if (target == grid2) {
+                cell.addEventListener('click', cellClicked);
+            }
 
             target.appendChild(cell);
         }
@@ -156,11 +159,11 @@ function dragEnd(e) {
                 let newGridRowStart = Math.ceil(targetedCellY - (shipHeight/2));
                 let newGridRowEnd = Math.ceil(targetedCellY + (shipHeight/2));
 
-                if ((shipGridColEnd - shipGridColStart) % 2 === 0) {
+                if (shipWidth % 2 === 0 && releaseX > element.offsetLeft + 20) {
                     newGridColStart++;
                     newGridColEnd++;
                 }
-                if ((shipGridRowEnd - shipGridRowStart) % 2 === 0) {
+                if (shipHeight % 2 === 0 && releaseY > element.offsetTop + 20) {
                     newGridRowStart++;
                     newGridRowEnd++;
                 }
@@ -250,24 +253,25 @@ function rotateShip(ship) {
         newGridRowEnd--;
     }
 
-    while (newGridColEnd > 11) {
-        newGridColEnd--;
-        newGridColStart--;
-    } 
-    while (newGridRowEnd > 11) {
-        newGridRowEnd--;
-        newGridRowStart--;
-    } 
+    // while (newGridColEnd > 11) {
+    //     console.log("oob adjust");
+    //     newGridColEnd--;
+    //     newGridColStart--;
+    // } 
+    // while (newGridRowEnd > 11) {
+    //     newGridRowEnd--;
+    //     newGridRowStart--;
+    // } 
 
-    while (newGridColStart < 1) {
-        newGridColEnd++;
-        newGridColStart++;
-    } 
+    // while (newGridColStart < 1) {
+    //     newGridColEnd++;
+    //     newGridColStart++;
+    // } 
 
-    while (newGridRowStart < 1) {
-        newGridRowEnd++;
-        newGridRowStart++;
-    } 
+    // while (newGridRowStart < 1) {
+    //     newGridRowEnd++;
+    //     newGridRowStart++;
+    // } 
 
     
     let i = dragShip.getAttribute('index');
@@ -310,6 +314,7 @@ function init() {
     p2Health.innerText = `${p2Ships.length} ships remaining.`;
     setStatus("Position your ships! Press 'R' while moving a ship to rotate.");
     dragEnabled = true;
+    document.getElementById('ready-button').style.display = 'block';
     document.getElementById('reset-button').style.display = 'none';
 }
 
@@ -388,12 +393,16 @@ function cpuShoot() {
     console.log("");
     console.log("");
 
-    const hits = grid1.querySelectorAll('.cell.bang:not(.dead)');
+    let hits = Array.from(grid1.querySelectorAll('.cell.bang:not(.dead)'));
+    hits.sort(() => Math.random() - 0.5);
     let x, y, targetedCell;
     let foundSmartTarget = false;
-    if (hits.length != 0) {
-        console.log('Looking near hits');
-        const searchSpot = hits[Math.floor(Math.random()*hits.length)];
+
+    hits.forEach((searchSpot) => {
+
+        if (foundSmartTarget) { return; }
+        
+        console.log('Looking near: ');
         console.log(searchSpot);
         console.log("------------------");
 
@@ -414,6 +423,7 @@ function cpuShoot() {
             console.log(`Targeting ${targetX}, ${targetY}`);
 
             if (targetX < 1 || targetX >= 11 || targetY < 1 || targetY >= 11) {
+                console.log("Can't shoot here, oob.");
                 continue;
             } else {
                 targetedCell = document.getElementById(`p1-[${targetX-1},${targetY-1}]`);
@@ -424,11 +434,13 @@ function cpuShoot() {
                     console.log("Found unshot tile, breaking");
                     foundSmartTarget = true;
                     break;
-                } 
+                } else {
+                    console.log("Can't shoot here, already shot.");
+                }
             }
         }
-    } 
-    
+    });
+            
     if (!foundSmartTarget) {
         console.log('Shooting blind');
         do {
@@ -513,8 +525,9 @@ function countDeadShips(prefix, ships) {
 
 function failsafe() {
     document.querySelectorAll('.warn').forEach(cell => {cell.classList.remove('warn')});
-    let playerPlacementInvalid = false;
     let i = 0;
+    let playerPlacementInvalid = false;
+
     p1Ships.forEach(ship => {
         const [x1, y1, x2, y2] = ship;
         if (checkOverlapping(p1Ships, x1, y1, x2, y2, i)){
@@ -526,12 +539,14 @@ function failsafe() {
     });
     if (playerPlacementInvalid) {
         setTempStatus('You have overlapping ships! Please move them.');
-        return;
+        return true;
+    } else {
+        return false;
     }
 }
 
 function runGame() {
-    failsafe();
+    if (failsafe()) {return;};
 
     document.getElementById('ready-button').style.display = 'none';
     grid2.classList.add("selectable");
