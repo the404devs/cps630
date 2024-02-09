@@ -130,8 +130,9 @@ function spawnShips(target) {
 
         // Make the ship draggable if it belongs to the player.
         if (owner == 'p1') {
-            ship.addEventListener('click', shipSelect);
+            // ship.addEventListener('click', shipSelect);
             ship.addEventListener('mousedown', dragStart);
+            ship.addEventListener('touchstart', dragStart);
         }
         
         // Increment counter
