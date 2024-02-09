@@ -122,20 +122,42 @@ body {
 
 @keyframes cellHighlight {
     0% {
-        transform: scale(1), rotate(0deg);
+        transform: scale(1);
     }
     25% {
-        transform: scale(1.08) rotate(0deg);
+        transform: scale(1.08);
     }
     50% {
-        transform: scale(1) rotate(0deg);
+        transform: scale(1);
     }
     75% {
-        transform: scale(1.08) rotate(-0deg);
+        transform: scale(1.08);
     }
     100% {
-        transform: scale(1) rotate(0deg);
+        transform: scale(1);
     }
+}
+
+@keyframes shipHighlight {
+    0% {
+        transform: scale(1.08) rotate(0deg);
+    }
+    25% {
+        transform: scale(1.08) rotate(5deg);
+    }
+    50% {
+        transform: scale(1.08) rotate(0deg);
+    }
+    75% {
+        transform: scale(1.08) rotate(-5deg);
+    }
+    100% {
+        transform: scale(1.08) rotate(0deg);
+    }
+}
+
+.ship.selected {
+    animation: shipHighlight 0.25s infinite;
 }
 
 #grid-2.selectable > .cell {
