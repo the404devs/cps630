@@ -749,5 +749,7 @@ function gameOver(victor){
 
 document.addEventListener('DOMContentLoaded', function() { init(); });
 document.addEventListener('mousemove', dragHandler);
+document.addEventListener('touchmove', dragHandler);
 document.addEventListener('mouseup', drop);
+document.addEventListener('touchend', drop);
 document.addEventListener('keydown', keyHandler);
