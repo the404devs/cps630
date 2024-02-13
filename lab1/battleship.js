@@ -1,48 +1,111 @@
+// Grid size constants
 const gridSize = 10;
 const bounds = 400;
 const cellSize = bounds/gridSize;
 
-//TODO: ship shrink bug when rotating vertical to horizontal on left side
-
+// Arrays for lists of ship positions
 let p1Ships = [];
 let p2Ships = [];
 
+// References to static elements on the page
 const grid1 = document.getElementById('grid-1');
 const grid2 = document.getElementById('grid-2');
-
 const ghostShip = document.getElementById('ghost');
-
-
-let mouseHeld = false;
-let dragShip;
-let rotated = false;
-
-let tempPrevPos;
-
-let dragEnabled = true;
-
 const statusBar = document.getElementById('status');
-let statusTimeout;
-let statusText = "";
-
-let playerCanShoot = false;
-
-
+const turnCounter = document.getElementById('turn-counter');
 const p1Health = document.getElementById('p1-health');
 const p2Health = document.getElementById('p2-health');
-
 const p1Misses = document.getElementById('p1-misses');
 const p2Misses = document.getElementById('p2-misses');
-
 const p1Hits = document.getElementById('p1-hits');
 const p2Hits = document.getElementById('p2-hits');
 
-const turnCounter = document.getElementById('turn-counter');
+// Variable reference to a ship being moved
+let dragShip;
+
+// Flags
+let mouseHeld = false;
+let rotated = false;
+let dragEnabled = true;
+let playerCanShoot = false;
+
+// Variable for storing a ship's previous position during a rotation operation
+let tempPrevPos;
+
+// Timer for temporary status messages
+let statusTimeout;
+// Current status text
+let statusText = "";
+
+// Turn counter
 let turn = 0;
 
+// Sound effects
 const boom = new Audio("./assets/audio/boom.mp3");
 const splash = new Audio("./assets/audio/splash.mp3");
 
+// Function to initialize the game
+function init() {
+    // Match the UI theme to the user's system (light/dark)
+    setTheme();
+    // Create the grids on which the game is played
+    generateGrid(grid1);
+    generateGrid(grid2);
+    // Spawn in the ships on both grids
+    spawnShips(grid1);
+    spawnShips(grid2);
+    // Reset the turn counter
+    turn = 0;
+    // Update the on-screen counters
+    incrementTurnCounter();
+    updateHitMissCount();
+    p1Health.innerText = `${p1Ships.length} ships remaining.`;
+    p2Health.innerText = `${p2Ships.length} ships remaining.`;
+
+    // Prompt the player to begin moving their ships into position
+    setStatus("Position your ships! Press 'R' while moving a ship to rotate.");
+    // Enable ship movement
+    dragEnabled = true;
+    grid1.querySelectorAll('.ship').forEach(ship => {ship.classList.add('draggable')});
+    // Reset temporary ship position
+    tempPrevPos = [];
+    // Show the "Ready" button, hide the "Reset" button
+    document.getElementById('ready-button').style.display = 'block';
+    document.getElementById('reset-button').style.display = 'none';
+}
+
+// Function to start the game.
+function runGame() {
+    // Failsafe ship overlap check
+    if (failsafe()) {return;};
+
+    // Hide the 'Ready' button
+    document.getElementById('ready-button').style.display = 'none';
+    // Allow the user to click cells on the CPU's grid
+    grid2.classList.add("selectable");
+    playerCanShoot = true;   
+    // Disallow the user from moving their ships
+    dragEnabled = false;
+    grid1.querySelectorAll('.ship').forEach(ship => {ship.classList.remove('draggable')});
+    // Prompt the user to begin playing
+    setStatus("Choose a target on the computers grid..."); 
+}
+
+/* Function to end the game
+    victor: A string, either 'p1' or 'p2', representing who won */
+function gameOver(victor){
+    // Pick which message to display, depending on the winner
+    const msg = victor == 'p1' ? "Player wins!" : "Computer wins!";
+    // Display the message
+    setStatus(msg);
+    // Add the 'revealed' class to the CPU's ships, so that the player can see where they were.
+    grid2.querySelectorAll('.ship').forEach(ship => {ship.classList.add('revealed')});
+    // Remove the player's ability to shoot.
+    grid2.classList.remove("selectable");
+    playerCanShoot = false;
+    // Show the 'Reset' button
+    document.getElementById('reset-button').style.display = 'block';
+}
 
 // Function to generate the grids for the two players.
 function generateGrid(target) {
@@ -73,7 +136,6 @@ function generateGrid(target) {
         }
     }
 }
-
 
 // Function to spawn the player's ships in randomized positions.
 function spawnShips(target) {
@@ -130,9 +192,7 @@ function spawnShips(target) {
 
         // Make the ship draggable if it belongs to the player.
         if (owner == 'p1') {
-            // ship.addEventListener('click', shipSelect);
             ship.addEventListener('mousedown', dragStart);
-            ship.addEventListener('touchstart', dragStart);
         }
         
         // Increment counter
@@ -140,43 +200,258 @@ function spawnShips(target) {
     });
 }
 
-function rotateButton() {
-    const selectedShip = grid1.querySelector('.ship.selected');
-    rotateShip(selectedShip);
+/* Function to check if a given rectangle overlaps a ship in a given list of ships.
+Used for checking ship positions, as well as hit-detection.
+
+    ships: A list of ships, defined as a list of 4 ints [x1, y1, x2, y2]
+    pos: A list of ints, forming the corners of a rectangle
+    ignore: Optional. An int, the index number of a ship to ignore in the 'ships' list. Typically used when moving ships, as we don't care if a ship's new position overlaps it's current one.
+*/
+function checkOverlapping(ships, pos, ignore) {
+    // Flag
+    let overlapping = false;
+    // Counter
+    let i = 0;
+
+    // Fetch individual values of the ship's corners
+    const [x1, y1, x2, y2] = pos;
+
+    // Iterate over each ship in the list
+    ships.forEach(ship => {
+        // Grab the individual x and y values
+        const [shipX1, shipY1, shipX2, shipY2] = ship;
+        // Check if the given position overlaps with the ship
+        if ((x1 < shipX2 && x2 > shipX1) && (y1 < shipY2 && y2 > shipY1)) {
+            // Check if we're supposed to ignore this ship
+            if (i != ignore) {
+                overlapping = true;
+            }
+        }
+
+        // Check if the given position is out of bounds
+        if ((x1 < 1 || x2 > 11) || (y1 < 1 || y2 > 11)) {
+            overlapping = true;
+        }
+
+        // Increment counter
+        i++;
+    });
+
+    // Return the value of the overlapping flag
+    return overlapping;
 }
 
-function shipSelect(e) {
-    alert("sus");
+// Function to act as a failsafe check when the game starts.
+// It runs a ship overlap check, and highlights any problematic placements.
+// Returns true/false, depending on whether the ship placement is valid.
+// In theory, it's impossible for the user to place ships in an invalid position, but it doesn't hurt to check.
+function failsafe() {
+    // Remove any existing warning markings
+    grid1.querySelectorAll('.warn').forEach(ship => {ship.classList.remove('warn')});
+
+    // Initialize vars
+    let i = 0;
+    let playerPlacementInvalid = false;
+
+    // Iterate over each of the players ships
+    p1Ships.forEach(ship => {
+        // Get individual x/y values.
+        const [x1, y1, x2, y2] = ship;
+        // Check if it overlaps any other ships
+        if (checkOverlapping(p1Ships, [x1, y1, x2, y2], i)){
+            playerPlacementInvalid = true;
+
+            // Get a reference to the overlapping ship
+            const badShip = grid1.getElementsByClassName('ship')[i];
+            // Add the 'warn' class to the ship: this makes it red, showing the user where the problem is.
+            badShip.classList.add('warn');
+        }
+        i++;
+    });
+    // If there are any invalid placements, flash a message to the user and return the appropriate true/false value
+    if (playerPlacementInvalid) {
+        setTempStatus('You have overlapping ships! Please move them.');
+    }
+
+    return playerPlacementInvalid;
 }
 
+// Function that runs whenever the player clicks on a cell
+function cellClicked(e) {
+    // Do nothing if the game has not yet started.
+    if (playerCanShoot) {
+        const cell = e.target;
+        // Check the classes of the clicked cell: if it only has the class "cell" it has not yet been shot.
+        if (cell.className == "cell") {
+            // Disable player interaction
+            playerCanShoot = false;
+            // Obtain the coords of the cell.
+            const [x, y] = [parseInt(cell.style.gridColumnStart), parseInt(cell.style.gridRowStart)];
+            // Check if the cell's coordinates overlap any of p2's ships
+            if (checkOverlapping(p2Ships, [x, y, x+1, y+1])) {
+                // Display message indicating success
+                setTempStatus(`BANG! Hit at [${x}, ${y}]`);
+                // Mark cell as hit
+                cell.classList.add('bang');
+                // Play sound
+                boom.currentTime = 0;
+                boom.play();
+                // Win condition check
+                if (countDeadShips('p2', p2Ships) == p2Ships.length) {
+                    gameOver('p1');
+                    return;
+                }
+            } else {
+                // Display message indicating miss
+                setTempStatus(`Miss at [${x}, ${y}]`);
+                // Mark cell as miss
+                cell.classList.add('miss');
+                // Play sound
+                splash.currentTime = 0;
+                splash.play();
+            }
 
-// Function to update the hit/miss counters based on the cells on the board.
-function updateHitMissCount() {
-    // Count up the number of hit and missed cells on each grid....
-    const p1HitCount = grid2.querySelectorAll('.cell.bang').length;
-    const p1MissCount = grid2.querySelectorAll('.cell.miss').length;
-    const p2HitCount = grid1.querySelectorAll('.cell.bang').length;
-    const p2MissCount = grid1.querySelectorAll('.cell.miss').length;
+            updateHitMissCount();
 
-    // .... and display the value in the counters.
-    p1Hits.innerText = `${p1HitCount} hits`;
-    p1Misses.innerText = `${p1MissCount} misses`;
-    p2Hits.innerText = `${p2HitCount} hits`;
-    p2Misses.innerText = `${p2MissCount} misses`;
+            // The player has taken their turn, so now it's the computer's turn.
+            setTimeout(cpuTurn, 1500);
+        } else {
+            // This cell has previously been shot.
+            setTempStatus("Cannot shoot there!");
+        }
+    }
 }
 
+// Function to determine where the CPU will shoot.
+function cpuShoot() {
+    // Initial check: if there are no open cells or alive ships, exit.
+    if (    
+        grid1.querySelectorAll('.cell:not(.bang):not(.miss)').length == 0 || 
+        grid1.querySelectorAll('.ship:not(.dead)').length == 0
+        ) {
+        return;
+    }
+
+    // Get a list of any cells marked as a 'hit', but not hits belonging to a ship that's already dead.
+    let hits = Array.from(grid1.querySelectorAll('.cell.bang:not(.dead)'));
+    // Randomize the list
+    hits.sort(() => Math.random() - 0.5);
+
+    // Allocate variables
+    let x, y, targetedCell;
+    let foundSmartTarget = false;
+
+    // Iterate over each cell marked as a 'hit' (possibly none)
+    // We are going to look for any adjacent cells that have not been shot, and attempt to shoot there instead of firing blindly: a 'smart target'
+    hits.forEach((searchSpot) => {
+        // If a target is already selected, don't bother calculating anything and skip
+        if (foundSmartTarget) { return; }
+
+        // Get the x and y position of the selected cell.
+        const searchX = parseInt(searchSpot.style.gridColumnStart);
+        const searchY = parseInt(searchSpot.style.gridRowStart);
+
+        // Get the positions of the 4 adjacent cells on all sides
+        let potentialTargets = [
+            [searchX+1, searchY],
+            [searchX, searchY+1],
+            [searchX-1, searchY],
+            [searchX, searchY-1]
+        ];
+
+        // Randomize this list: we don't want to always prioritize one direction over the others
+        potentialTargets.sort(() => Math.random() - 0.5);
+
+        // Iterate over each potential target.
+        for (let i = 0; i < potentialTargets.length; i++) {
+            // Get individual x and y values
+            const [targetX, targetY] = potentialTargets[i];
+
+            // Ensure target is within the bounds of the grid
+            if (targetX < 1 || targetX >= 11 || targetY < 1 || targetY >= 11) {
+                // Skip if out-of-bounds
+                continue;
+            } else {
+                // Get the element representing the targeted cell
+                targetedCell = document.getElementById(`p1-[${targetX-1},${targetY-1}]`);
+                // Classes are added to a cell to mark it as a hit/miss
+                // If the class name is just 'cell', it has not been shot yet.
+                if (targetedCell.className == 'cell') {
+                    // Set the coords of the cell as our target
+                    x = targetX;
+                    y = targetY;
+                    // Skip further iterations
+                    foundSmartTarget = true;
+                    break;
+                }
+            }
+        }
+    });
+    
+    // If there are no available 'smart targets' (open cells next to hits), shoot randomly.
+    if (!foundSmartTarget) {
+        // Continually generate a set of random coords, until we get a set that corresponds to an empty cell
+        do {
+            x = rng(gridSize-1);
+            y = rng(gridSize-1);
+            targetedCell = document.getElementById(`p1-[${x-1},${y-1}]`);
+        } while (targetedCell.className != "cell");
+    }
+    
+
+    // Check if the cell's coordinates overlap any of p1's ships
+    if (checkOverlapping(p1Ships, [x, y, x+1, y+1])) {
+        // Display message indicating success
+        setTempStatus(`BANG! Computer hit at [${x}, ${y}]`);
+        // Mark cell as hit
+        targetedCell.classList.add('bang');
+        // Play sound
+        boom.currentTime = 0;
+        boom.play();
+        // Win condition check
+        if (countDeadShips('p1', p1Ships) == p1Ships.length) {
+            gameOver('p2');
+            return;
+        }
+    } else {
+        // Display message indicating miss
+        setTempStatus(`Computer miss at [${x}, ${y}]`);
+        // Mark cell as miss
+        targetedCell.classList.add('miss');
+        // Play sound
+        splash.currentTime = 0;
+        splash.play();
+    }
+
+    // Update the on-screen counters
+    updateHitMissCount();
+    incrementTurnCounter();
+
+    // Return control to the player.
+    playerCanShoot = true;
+    grid2.classList.add("selectable");
+}
+
+// Function to begin the CPU's turn.
+function cpuTurn() {
+    // Remove the 'selectable' class from the CPU's grid, so the player can't shoot when it's not their turn.
+    grid2.classList.remove("selectable");
+    // Inform the user that the computer is "thinking"
+    setTempStatus("Awaiting computer's move...");
+    // Delay the cpu's move by 2 seconds, so that it feels more interactive to the user.
+    setTimeout(cpuShoot, 2000);
+}
 
 // Function called when a ship begins to be dragged.
 function dragStart(e) {
-    e.preventDefault();
     // Ensure the user is using the left mouse button, and that they are allowed to drag ships right now.
+    e.preventDefault();
     if (e.which == 1 && dragEnabled) {
         // Assign the targeted ship to the global dragShip variable.
         dragShip = e.target;
 
-        grid1.querySelectorAll('.ship').forEach(ship => {ship.classList.remove('selected')});
         // Give it the 'dragging' class, this visually hides it while the drag is in effect.
-        dragShip.classList.add('dragging', 'selected');
+        dragShip.classList.add('dragging');
         // Mark the mouse as currently held down.
         mouseHeld = true;
         // Enable the ghost ship to mimic the ship being moved.
@@ -186,41 +461,11 @@ function dragStart(e) {
     }
 }
 
-
-// Function to use a fake ship to mimic the one the player is attempting to move.
-// The 'ghost ship' is not grid-allinged, allowing us to make it follow the user's mouse easier, while keeping the real ship in it's correct position until we're sure the user is putting it in a valid place.
-function setGhostShip(mimic){
-    // Copy the classes of the ship to mimic.
-    ghostShip.classList = mimic.classList;
-    // Calculate the width and height in pixels of the ship to mimic.
-    width = cellSize * (mimic.style.gridColumnEnd - mimic.style.gridColumnStart);
-    height = cellSize * (mimic.style.gridRowEnd - mimic.style.gridRowStart);
-    ghostShip.style.width = `${width}px`;
-    ghostShip.style.height = `${height}px`;
-
-    // Make the ship ghost ship visible
-    ghostShip.style.visibility = "visible";
-}
-
-// Function to hide the ghost ship once a ship has finished being moved.
-function unsetGhostShip() {
-    // Clear the ghost ship's class list
-    ghostShip.classList = [];
-    // Hide the ship
-    ghostShip.style.visibility = "hidden";
-    // Reset it's size and position.
-    ghostShip.style.width = `0px`;
-    ghostShip.style.height = `0px`;
-    ghostShip.style.left = `0px`;
-    ghostShip.style.top = `0px`; 
-}
-
-
 // Function called whenever the mouse is moved. Used while a ship is being dragged around, and simulates a snap-to-grid effect while moving the ship
 function dragHandler(e) {
-    e.preventDefault();
     // Ensure that the mouse is held.
-    if (e.which == 1 && mouseHeld) {
+    e.preventDefault();
+    if (mouseHeld) {
         // Get the ghost ship's dimensions
         const w = parseInt(ghostShip.style.width);
         const l = parseInt(ghostShip.style.height);
@@ -245,9 +490,8 @@ function dragHandler(e) {
         if (y > bottomBound) {y = bottomBound;}
         
         // Fun math: capping the x and y to the nearest multiple of the cellSize, adjusting for the grid's offset
-        x = (Math.round(x / cellSize) * cellSize) + offsetX;
-        y = (Math.floor(y / cellSize) * cellSize) + offsetY;
-        // Why do we round for x, but floor for y? idk, but this makes it work
+        x = (Math.round((x - offsetX) / cellSize) * cellSize) + offsetX;
+        y = (Math.round((y - offsetY) / cellSize) * cellSize) + offsetY;
         
         // Set the ghost ship's position
         ghostShip.style.left = `${x}px`;
@@ -255,32 +499,19 @@ function dragHandler(e) {
     }
 }
 
-
-// Function to update a position of a ship on the grid
-function setShipPosition(shipElem, x1, y1, x2, y2, index, ships) {
-    // Set it's visual position
-    shipElem.style.gridColumnStart = x1;
-    shipElem.style.gridColumnEnd = x2;
-    shipElem.style.gridRowStart = y1;
-    shipElem.style.gridRowEnd = y2;
-
-    // Update the position in memory
-    ships[index] = [x1, y1, x2, y2];
-}
-
-// Function called when a drag operation ends (drop)
+// Function called when a drag operation ends
 function drop(e) {
-    e.preventDefault();
     // Ensure the mouse was held
     if (e.which == 1 && mouseHeld) {
+        e.preventDefault();
         // Get the index of the ship being moved.
         const shipIndex = dragShip.getAttribute('index');
         // Get the list of other ships owned by this player.
         const otherShips = dragShip.classList.contains('p1') ? p1Ships : p2Ships;
-
         // Get the coords of where the mouse was released.
         const releaseX = e.pageX;
         const releaseY = e.pageY;
+
         const targetedElems = document.elementsFromPoint(releaseX, releaseY);
 
         // Find the cell under the mouse.
@@ -356,60 +587,32 @@ function drop(e) {
     }
 }
 
+// Function to use a fake ship to mimic the one the player is attempting to move.
+// The 'ghost ship' is not grid-allinged, allowing us to make it follow the user's mouse easier, while keeping the real ship in it's correct position until we're sure the user is putting it in a valid place.
+function setGhostShip(mimic){
+    // Copy the classes of the ship to mimic.
+    ghostShip.classList = mimic.classList;
+    // Calculate the width and height in pixels of the ship to mimic.
+    width = cellSize * (mimic.style.gridColumnEnd - mimic.style.gridColumnStart);
+    height = cellSize * (mimic.style.gridRowEnd - mimic.style.gridRowStart);
+    ghostShip.style.width = `${width}px`;
+    ghostShip.style.height = `${height}px`;
 
-/* Function to check if a given rectangle overlaps a ship in a given list of ships.
-Used for checking ship positions, as well as hit-detection.
-
-    ships: A list of ships, defined as a list of 4 ints [x1, y1, x2, y2]
-    pos: A list of ints, forming the corners of a rectangle
-    ignore: Optional. An int, the index number of a ship to ignore in the 'ships' list. Typically used when moving ships, as we don't care if a ship's new position overlaps it's current one.
-*/
-function checkOverlapping(ships, pos, ignore) {
-    // Flag
-    let overlapping = false;
-    // Counter
-    let i = 0;
-
-    const [x1, y1, x2, y2] = pos;
-
-    // Iterate over each ship in the list
-    ships.forEach(ship => {
-        // Grab the individual x and y values
-        const [shipX1, shipY1, shipX2, shipY2] = ship;
-        // Check if the given position overlaps with the ship
-        if ((x1 < shipX2 && x2 > shipX1) && (y1 < shipY2 && y2 > shipY1)) {
-            // Check if we're supposed to ignore this ship
-            if (i != ignore) {
-                overlapping = true;
-            }
-        }
-
-        // Check if the given position is out of bounds
-        if ((x1 < 1 || x2 > 11) || (y1 < 1 || y2 > 11)) {
-            overlapping = true;
-        }
-
-        // Increment counter
-        i++;
-    });
-
-    // Return the value of the overlapping flag
-    return overlapping;
+    // Make the ship ghost ship visible
+    ghostShip.style.visibility = "visible";
 }
 
-/* Function to remove ships from a given grid
-    target: A reference to either grid1 or grid2
- */
-function removeExistingShips(target) {
-    // Iterate over each ship element and destroy it.
-    target.querySelectorAll(".ship").forEach(ship => ship.remove());
-
-    // Clear the appropriate ships list.
-    if (target.id == "grid-1") {
-        p1Ships = [];
-    } else {
-        p2Ships = [];
-    }
+// Function to hide the ghost ship once a ship has finished being moved.
+function unsetGhostShip() {
+    // Clear the ghost ship's class list
+    ghostShip.classList = [];
+    // Hide the ship
+    ghostShip.style.visibility = "hidden";
+    // Reset it's size and position.
+    ghostShip.style.width = `0px`;
+    ghostShip.style.height = `0px`;
+    ghostShip.style.left = `0px`;
+    ghostShip.style.top = `0px`; 
 }
 
 /* Function to rotate a ship 90 degrees
@@ -460,6 +663,134 @@ function rotateShip(ship) {
     setShipPosition(ship, newX1, newY1, newX2, newY2, shipIndex, otherShips);
 }
 
+// Function to update a position of a ship on the grid
+function setShipPosition(shipElem, x1, y1, x2, y2, index, ships) {
+    // Set it's visual position
+    shipElem.style.gridColumnStart = x1;
+    shipElem.style.gridColumnEnd = x2;
+    shipElem.style.gridRowStart = y1;
+    shipElem.style.gridRowEnd = y2;
+
+    // Update the position in memory
+    ships[index] = [x1, y1, x2, y2];
+}
+
+/* Function to count how many ships a player has remaining.
+    prefix: A string, either "p1" or "p2"
+    ships: An array, representing the ships belonging to the player. */
+function countDeadShips(prefix, ships) {
+    // Initialize some counters
+    let index = 0;
+    let destroyedShips = 0;
+    // Get references to the grid and healthbar of whichever player we're looking at
+    const grid = prefix == 'p1' ? grid1 : grid2;
+    const health = prefix == 'p1' ? p1Health : p2Health;
+
+    // Iterate over each ship belonging to the player
+    ships.forEach(ship => {
+        // Get individual x/y values of the ship's position
+        const [x1, y1, x2, y2] = ship;
+        // Calculate the number of cells this ship occupies.
+        let totalCells = (x2-x1) * (y2-y1);
+        // Counter for the number of cells within the ship that have been hit
+        let hitCells = 0;
+        // List for references to each cell occupied by the ship
+        let cells = [];
+
+        // Double for loop to iterate over the cells covered by the ship
+        for (let i = x1; i < x2; i++) {
+            for (let j = y1; j < y2; j++) {
+
+                // Get a reference to the cell
+                const occupiedCell = document.getElementById(`${prefix}-[${i-1},${j-1}]`);
+
+                // Check if this cell has been struck
+                if (occupiedCell.classList.contains("bang")) {
+                    // Increment counter
+                    hitCells++;
+                    // Add this cell to the list
+                    cells.push(occupiedCell);
+                }
+            }
+        }
+
+        // If the number of hit cells matches the total number of cells covered by the ship, the ship has been sunk
+        if (totalCells == hitCells) {
+            // Get a reference to the ship
+            const target = grid.getElementsByClassName('ship')[index];
+            // Add the 'dead' class to it
+            target.classList.add('dead');
+            // Increment the dead ships counter.
+            destroyedShips++;
+            // Mark all the cells covered by the ship as dead, so we can differentiate between them and hits belonging to unsunk ships
+            cells.forEach(cell => {cell.classList.add('dead')});
+        }
+        index++;
+    });
+
+    // Update the player's health to reflect the number of ships left
+    health.innerText = `${ships.length - destroyedShips} ships remaining.`;
+
+    // Return the number of destroyed ships
+    return destroyedShips;
+}
+
+/* Function to remove ships from a given grid
+    target: A reference to either grid1 or grid2
+ */
+function removeExistingShips(target) {
+    // Iterate over each ship element and destroy it.
+    target.querySelectorAll(".ship").forEach(ship => ship.remove());
+
+    // Clear the appropriate ships list.
+    if (target.id == "grid-1") {
+        p1Ships = [];
+    } else {
+        p2Ships = [];
+    }
+}
+
+// Function to temporarily change the status message 
+function setTempStatus(msg) {
+    // Clear any existing temporary status
+    clearTimeout(statusTimeout);
+
+    // Change the text in the status bar
+    statusBar.innerText = msg;
+
+    // Schedule the status bar to revert to it's initial text in 2 seconds
+    statusTimeout = setTimeout(() => {
+        statusBar.innerText = statusText;
+    }, 2000);
+}
+
+// Function to permanently change the status message
+function setStatus(msg) {
+    statusText = msg;
+    statusBar.innerText = msg;
+}
+
+// Function to update the hit/miss counters based on the cells on the board.
+function updateHitMissCount() {
+    // Count up the number of hit and missed cells on each grid....
+    const p1HitCount = grid2.querySelectorAll('.cell.bang').length;
+    const p1MissCount = grid2.querySelectorAll('.cell.miss').length;
+    const p2HitCount = grid1.querySelectorAll('.cell.bang').length;
+    const p2MissCount = grid1.querySelectorAll('.cell.miss').length;
+
+    // .... and display the value in the counters.
+    p1Hits.innerText = `${p1HitCount} hits`;
+    p1Misses.innerText = `${p1MissCount} misses`;
+    p2Hits.innerText = `${p2HitCount} hits`;
+    p2Misses.innerText = `${p2MissCount} misses`;
+}
+
+// Function to increment the turn counter.
+function incrementTurnCounter() {
+    turn++;
+    turnCounter.innerText = `Turn ${turn}`;
+}
+
 // Function to detect keypresses. Used to trigger rotation when R is pressed.
 function keyHandler(e) {
     // Only do something if a drag operation is underway and the user presses R
@@ -481,275 +812,22 @@ function rng(max) {
     return Math.floor(Math.random() * (max+1) + 1);
 }
 
-// Function to initialize the game
-function init() {
-    generateGrid(grid1);
-    generateGrid(grid2);
-    spawnShips(grid1);
-    spawnShips(grid2);
-    turn = 0;
-    incrementTurnCounter();
-    updateHitMissCount();
-    p1Health.innerText = `${p1Ships.length} ships remaining.`;
-    p2Health.innerText = `${p2Ships.length} ships remaining.`;
-    setStatus("Position your ships! Press 'R' while moving a ship to rotate.");
-    dragEnabled = true;
-    tempPrevPos = [];
-    document.getElementById('ready-button').style.display = 'block';
-    document.getElementById('reset-button').style.display = 'none';
-}
-
-function setTempStatus(msg) {
-    clearTimeout(statusTimeout);
-    statusBar.innerText = msg;
-
-    statusTimeout = setTimeout(() => {
-        statusBar.innerText = statusText;
-    }, 2000);
-}
-
-function setStatus(msg) {
-    statusText = msg;
-    statusBar.innerText = msg;
-}
-
-function cellClicked(e) {
-    // Do nothing if the game has not yet started.
-    if (playerCanShoot) {
-        const cell = e.target;
-        // Check the classes of the clicked cell: if it only has the class "cell" it has not yet been shot.
-        if (cell.className == "cell") {
-            // Disable player interaction
-            playerCanShoot = false;
-            // Obtain the coords of the cell.
-            const [x, y] = [parseInt(cell.style.gridColumnStart), parseInt(cell.style.gridRowStart)];
-            // Check if the cell's coordinates overlap any of p2's ships
-            if (checkOverlapping(p2Ships, [x, y, x+1, y+1])) {
-                // Display message indicating success
-                setTempStatus(`BANG! Hit at [${x}, ${y}]`);
-                // Mark cell as hit
-                cell.classList.add('bang');
-                // Play sound
-                boom.currentTime = 0;
-                boom.play();
-                // Win condition check
-                if (countDeadShips('p2', p2Ships) == p2Ships.length) {
-                    gameOver('p1');
-                    return;
-                }
-            } else {
-                // Display message indicating miss
-                setTempStatus(`Miss at [${x}, ${y}]`);
-                // Mark cell as miss
-                cell.classList.add('miss');
-                // Play sound
-                splash.currentTime = 0;
-                splash.play();
-            }
-
-            updateHitMissCount();
-
-            // The player has taken their turn, so now it's the computer's turn.
-            setTimeout(cpuTurn, 1500);
-        } else {
-            // This cell has previously been shot.
-            setTempStatus("Cannot shoot there!");
-        }
-    }
-}
-
-function cpuTurn() {
-    grid2.classList.remove("selectable");
-    setTempStatus("Awaiting computer's move...");
-    setTimeout(cpuShoot, 2000);
-}
-
-function cpuShoot() {
-    if (    
-        grid1.querySelectorAll('.cell:not(.bang):not(.miss)').length == 0 || 
-        grid1.querySelectorAll('.ship:not(.dead)').length == 0
-        ) {
-        return;
-    }
-
-    console.log("");
-    console.log("");
-    console.log("");
-
-    let hits = Array.from(grid1.querySelectorAll('.cell.bang:not(.dead)'));
-    hits.sort(() => Math.random() - 0.5);
-    let x, y, targetedCell;
-    let foundSmartTarget = false;
-
-    hits.forEach((searchSpot) => {
-
-        if (foundSmartTarget) { return; }
-        
-        console.log('Looking near: ');
-        console.log(searchSpot);
-        console.log("------------------");
-
-        const searchX = parseInt(searchSpot.style.gridColumnStart);
-        const searchY = parseInt(searchSpot.style.gridRowStart);
-
-        let potentialTargets = [
-            [searchX+1, searchY],
-            [searchX, searchY+1],
-            [searchX-1, searchY],
-            [searchX, searchY-1]
-        ];
-
-        potentialTargets.sort(() => Math.random() - 0.5);
-
-        for (let i = 0; i < potentialTargets.length; i++) {
-            const [targetX, targetY] = potentialTargets[i];
-            console.log(`Targeting ${targetX}, ${targetY}`);
-
-            if (targetX < 1 || targetX >= 11 || targetY < 1 || targetY >= 11) {
-                console.log("Can't shoot here, oob.");
-                continue;
-            } else {
-                targetedCell = document.getElementById(`p1-[${targetX-1},${targetY-1}]`);
-                console.log(targetedCell);
-                if (targetedCell.className == 'cell') {
-                    x = targetX;
-                    y = targetY;
-                    console.log("Found unshot tile, breaking");
-                    foundSmartTarget = true;
-                    break;
-                } else {
-                    console.log("Can't shoot here, already shot.");
-                }
-            }
-        }
-    });
-            
-    if (!foundSmartTarget) {
-        console.log('Shooting blind');
-        do {
-            x = rng(gridSize-1);
-            y = rng(gridSize-1);
-            targetedCell = document.getElementById(`p1-[${x-1},${y-1}]`);
-        } while (targetedCell.className != "cell");
-    }
-    
-
-    // Check if the cell's coordinates overlap any of p1's ships
-    if (checkOverlapping(p1Ships, [x, y, x+1, y+1])) {
-        // Display message indicating success
-        setTempStatus(`BANG! Computer hit at [${x}, ${y}]`);
-        // Mark cell as hit
-        targetedCell.classList.add('bang');
-        // Play sound
-        boom.currentTime = 0;
-        boom.play();
-        // Win condition check
-        if (countDeadShips('p1', p1Ships) == p1Ships.length) {
-            gameOver('p2');
-            return;
-        }
+// Function to set the UI to light or dark mode, depending on the user's system
+function setTheme() {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.replace('theme-light', 'theme-dark');
     } else {
-        // Display message indicating miss
-        setTempStatus(`Computer miss at [${x}, ${y}]`);
-        // Mark cell as miss
-        targetedCell.classList.add('miss');
-        // Play sound
-        splash.currentTime = 0;
-        splash.play();
+        document.body.classList.replace('theme-dark', 'theme-light');
     }
-
-    // Return control to the player.
-    playerCanShoot = true;
-    grid2.classList.add("selectable");
-    updateHitMissCount();
-    incrementTurnCounter();
-}
-
-function incrementTurnCounter() {
-    turn++;
-    turnCounter.innerText = `Turn ${turn}`;
-}
-
-function countDeadShips(prefix, ships) {
-    let index = 0;
-    let destroyedShips = 0;
-    const grid = prefix == 'p1' ? grid1 : grid2;
-    const health = prefix == 'p1' ? p1Health : p2Health;
-    ships.forEach(ship => {
-        const [x1, y1, x2, y2] = ship;
-        let totalCells = (x2-x1) * (y2-y1);
-        let hitCells = 0;
-
-        let cells = [];
-        for (let i = x1; i < x2; i++) {
-            for (let j = y1; j < y2; j++) {
-                const occupiedCell = document.getElementById(`${prefix}-[${i-1},${j-1}]`);
-
-                if (occupiedCell.classList.contains("bang")) {
-                    hitCells++;
-                    cells.push(occupiedCell);
-                }
-            }
-        }
-
-        if (totalCells == hitCells) {
-            const target = grid.getElementsByClassName('ship')[index];
-            target.classList.add('dead');
-            destroyedShips++;
-
-            cells.forEach(cell => {cell.classList.add('dead')});
-        }
-        index++;
-    });
-
-    health.innerText = `${ships.length - destroyedShips} ships remaining.`;
-
-    return destroyedShips;
-}
-
-function failsafe() {
-    document.querySelectorAll('.warn').forEach(cell => {cell.classList.remove('warn')});
-    let i = 0;
-    let playerPlacementInvalid = false;
-
-    p1Ships.forEach(ship => {
-        const [x1, y1, x2, y2] = ship;
-        if (checkOverlapping(p1Ships, [x1, y1, x2, y2], i)){
-            playerPlacementInvalid = true;
-            const badShip = grid1.getElementsByClassName('ship')[i];
-            badShip.classList.add('warn');
-        }
-        i++;
-    });
-    if (playerPlacementInvalid) {
-        setTempStatus('You have overlapping ships! Please move them.');
-        return true;
-    } else {
-        return false;
-    }
-}
-
-function runGame() {
-    if (failsafe()) {return;};
-
-    document.getElementById('ready-button').style.display = 'none';
-    grid2.classList.add("selectable");
-    dragEnabled = false;
-    setStatus("Choose a target on the computers grid..."); 
-    playerCanShoot = true;   
-}
-
-function gameOver(victor){
-    const msg = victor == 'p1' ? "Player wins!" : "Computer wins!";
-    setStatus(msg);
-    grid2.querySelectorAll('.ship').forEach(ship => {ship.classList.add('revealed')});
-    playerCanShoot = false;
-    document.getElementById('reset-button').style.display = 'block';
 }
 
 document.addEventListener('DOMContentLoaded', function() { init(); });
 document.addEventListener('mousemove', dragHandler);
-document.addEventListener('touchmove', dragHandler);
 document.addEventListener('mouseup', drop);
-document.addEventListener('touchend', drop);
+document.addEventListener('touchend', drop, {passive: false});
 document.addEventListener('keydown', keyHandler);
+
+// Detect system light/dark mode change 
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    setTheme();
+});
