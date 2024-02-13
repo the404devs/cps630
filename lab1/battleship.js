@@ -228,10 +228,7 @@ function checkOverlapping(ships, pos, ignore) {
             }
         }
 
-        // Check if the given position is out of bounds
-        if ((x1 < 1 || x2 > 11) || (y1 < 1 || y2 > 11)) {
-            overlapping = true;
-        }
+        
 
         // Increment counter
         i++;
@@ -509,8 +506,20 @@ function drop(e) {
         // Get the list of other ships owned by this player.
         const otherShips = dragShip.classList.contains('p1') ? p1Ships : p2Ships;
         // Get the coords of where the mouse was released.
-        const releaseX = e.pageX;
-        const releaseY = e.pageY;
+        let releaseX = e.pageX;
+        let releaseY = e.pageY;
+
+        // Get the bounds of the grid
+        const leftBound = parseInt(grid1.offsetLeft) + 2;
+        const topBound = parseInt(grid1.offsetTop) + 2;
+        const rightBound = leftBound + bounds - 4;
+        const bottomBound = topBound + bounds - 4;
+
+        // Cap the position of the mouse to within the bounds of the grid
+        if (releaseX < leftBound) {releaseX = leftBound;}
+        if (releaseY < topBound) {releaseY = topBound;}
+        if (releaseX > rightBound) {releaseX = rightBound;}
+        if (releaseY > bottomBound) {releaseY = bottomBound;}
 
         const targetedElems = document.elementsFromPoint(releaseX, releaseY);
 
@@ -518,7 +527,8 @@ function drop(e) {
         const targetedCell = targetedElems.filter(elem => elem.classList.contains('cell'))[0];
 
         // If there is a cell under the mouse, proceed.
-        if (targetedCell) {
+        // Ensure the cell belongs to grid1, otherwise the player can cheat and find where p2's ships are via the "overlapping ship" warning
+        if (targetedCell && targetedCell.parentElement == grid1) {
             // Get the grid x,y coords of this cell.
             const targetedCellX = parseInt(targetedCell.style.gridColumnStart);
             const targetedCellY = parseInt(targetedCell.style.gridRowStart);
@@ -548,6 +558,12 @@ function drop(e) {
                 newY1++;
                 newY2++;
             }
+
+            // Nudge the ship back in bounds if it sticks out a bit
+            if (newX1 < 1) {newX1 = 1; newX2 = newX1+shipWidth}
+            if (newY1 < 1) {newY1 = 1; newY2 = newY1+shipHeight}
+            if (newX2 > 11) {newX2 = 11; newX1 = newX2-shipWidth}
+            if (newY2 > 11) {newY2 = 11; newY1 = newY2-shipHeight}
 
             // Check if the new position is valid...
             if (!checkOverlapping(otherShips, [newX1, newY1, newX2, newY2], shipIndex)) {
