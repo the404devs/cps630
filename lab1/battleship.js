@@ -43,6 +43,10 @@ let turn = 0;
 // Sound effects
 const boom = new Audio("./assets/audio/boom.mp3");
 const splash = new Audio("./assets/audio/splash.mp3");
+const err = new Audio("./assets/audio/err.mp3");
+const snap = new Audio("./assets/audio/snap.mp3");
+const spin = new Audio("./assets/audio/spin.mp3");
+const victory = new Audio("./assets/audio/victory.mp3");
 
 // Function to initialize the game
 function init() {
@@ -98,6 +102,9 @@ function gameOver(victor){
     const msg = victor == 'p1' ? "Player wins!" : "Computer wins!";
     // Display the message
     setStatus(msg);
+    // Play the win/loss sound effect
+    victory.currentTime = 0;
+    victory.play();
     // Add the 'revealed' class to the CPU's ships, so that the player can see where they were.
     grid2.querySelectorAll('.ship').forEach(ship => {ship.classList.add('revealed')});
     // Remove the player's ability to shoot.
@@ -227,9 +234,6 @@ function checkOverlapping(ships, pos, ignore) {
                 overlapping = true;
             }
         }
-
-        
-
         // Increment counter
         i++;
     });
@@ -469,8 +473,8 @@ function dragHandler(e) {
 
         const leftBound = parseInt(grid1.offsetLeft);
         const topBound = parseInt(grid1.offsetTop);
-        const rightBound = leftBound + bounds - cellSize;
-        const bottomBound = topBound + bounds - cellSize;
+        const rightBound = leftBound + bounds - w;
+        const bottomBound = topBound + bounds - l;
 
         // Use the grid's offset from the top left, as we're aligning the ship based on the cell size. 
         let offsetX = (leftBound % cellSize);
@@ -569,9 +573,15 @@ function drop(e) {
             if (!checkOverlapping(otherShips, [newX1, newY1, newX2, newY2], shipIndex)) {
                 // ...and set the ship in the new position
                 setShipPosition(dragShip, newX1, newY1, newX2, newY2, shipIndex, otherShips);
+                // Play sound
+                snap.currentTime = 0;
+                snap.play();
             } else {
                 // If the new spot is invalid, flash a message to the user.
                 setTempStatus("Invalid placement: The ship overlaps another.");
+                // Play sound
+                err.currentTime = 0;
+                err.play();
                 // If the ship was rotated during this drag operation, we need to put it back to how it was before.
                 if (rotated) {
                     // Restore the ship to it's pre-rotation position
@@ -581,6 +591,9 @@ function drop(e) {
         } else {
             // There is no cell under the mouse. The user attempted to place the ship out-of-bounds.
             setTempStatus("Invalid placement: The ship is out-of-bounds.");
+            // Play sound
+            err.currentTime = 0;
+            err.play();
             // If the ship was rotated during this drag operation, we need to put it back to how it was before.
             if(rotated) {
                 // Restore the ship to it's pre-rotation position
@@ -674,6 +687,10 @@ function rotateShip(ship) {
     const shipIndex = ship.getAttribute('index');
     // Get the list of other ships owned by this player
     const otherShips = ship.classList.contains('p1') ? p1Ships : p2Ships;
+
+    // Play sound
+    spin.currentTime = 0;
+    spin.play();
 
     // Attempt to place the ship in the rotated position
     setShipPosition(ship, newX1, newY1, newX2, newY2, shipIndex, otherShips);

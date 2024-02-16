@@ -227,7 +227,7 @@ body {
     visibility: hidden;
 }
 
-.ship.p1.draggable:hover {
+.ship.p1.draggable:hover, .ship.p1.dragging {
     transform: scale(1.08);
     backdrop-filter: blur(5px);
     z-index: 999;
@@ -316,4 +316,14 @@ button {
 button:hover {
     background-color: var(--button);
     color: white;
+}
+
+.footer {
+    display: flex;
+    flex-direction: column;
+    flex-basis: 100%;
+    position: fixed;
+    width: -webkit-fill-available;
+    margin: 10px;
+    font-size: 12px;
 }
