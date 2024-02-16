@@ -47,6 +47,8 @@ const err = new Audio("./assets/audio/err.mp3");
 const snap = new Audio("./assets/audio/snap.mp3");
 const spin = new Audio("./assets/audio/spin.mp3");
 const victory = new Audio("./assets/audio/victory.mp3");
+const loss = new Audio("./assets/audio/loss.mp3");
+const begin = new Audio("./assets/audio/begin.mp3");
 
 // Function to initialize the game
 function init() {
@@ -83,6 +85,10 @@ function runGame() {
     // Failsafe ship overlap check
     if (failsafe()) {return;};
 
+    // Play sound
+    begin.currentTime = 0;
+    begin.play();
+
     // Hide the 'Ready' button
     document.getElementById('ready-button').style.display = 'none';
     // Allow the user to click cells on the CPU's grid
@@ -100,11 +106,12 @@ function runGame() {
 function gameOver(victor){
     // Pick which message to display, depending on the winner
     const msg = victor == 'p1' ? "Player wins!" : "Computer wins!";
+    const sfx = victor == 'p1' ? victory : loss;
     // Display the message
     setStatus(msg);
     // Play the win/loss sound effect
-    victory.currentTime = 0;
-    victory.play();
+    sfx.currentTime = 0;
+    sfx.play();
     // Add the 'revealed' class to the CPU's ships, so that the player can see where they were.
     grid2.querySelectorAll('.ship').forEach(ship => {ship.classList.add('revealed')});
     // Remove the player's ability to shoot.

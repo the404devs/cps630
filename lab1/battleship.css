@@ -323,6 +323,7 @@ button:hover {
     flex-direction: column;
     flex-basis: 100%;
     position: fixed;
+    bottom: 0;
     width: -webkit-fill-available;
     margin: 10px;
     font-size: 12px;
