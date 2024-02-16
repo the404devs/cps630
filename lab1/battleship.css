@@ -16,7 +16,7 @@
 
 .theme-dark {
     --background: #151824;
-    --background-alt: rgba(241, 245, 248, 0.75);
+    --background-alt: #292e43a3;
     --background-highlight: #9baab8;
     --border: rgba(255,255,255,0.3);
     --border-alt: rgba(255,255,255,0.3);
@@ -37,7 +37,6 @@ body {
     justify-content: center;
     flex-wrap: wrap;
     background-color: var(--background);
-    /* background-color: #2c3441; */
     color: var(--text);
 }
 
@@ -294,11 +293,11 @@ h2 {
 .turn {
     font-weight: bold;
     flex-basis: 100%;
-    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 
-button, input[type=number] {
+button, .ship-count {
     background-color: transparent;
     display: block;
     border: 1px solid var(--button);
@@ -318,9 +317,11 @@ button:hover {
     color: white;
 }
 
-input[type=number] {
+.ship-count {
     padding: 0.5em 0.7em;
     width: 35px;
+    margin: 0;
+    background-color: var(--background);
 }
 
 .footer {

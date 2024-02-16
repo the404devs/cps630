@@ -72,8 +72,9 @@ function init() {
     // Reset temporary ship position
     tempPrevPos = [];
     // Show the "Ready" button and ship menu, hide the "Reset" button
+    document.querySelectorAll('.ship-count').forEach(input => input.disabled = false);
+    document.getElementById('randomize-button').style.display = 'block';
     document.getElementById('ready-button').style.display = 'block';
-    document.getElementById('ship-builder').style.display = 'flex';
     document.getElementById('reset-button').style.display = 'none';
 }
 
@@ -92,7 +93,8 @@ function runGame() {
 
     // Hide the 'Ready' button and ship menu
     document.getElementById('ready-button').style.display = 'none';
-    document.getElementById('ship-builder').style.display = 'none';
+    document.querySelectorAll('.ship-count').forEach(input => input.disabled = true);
+    document.getElementById('randomize-button').style.display = 'none';
     // Allow the user to click cells on the CPU's grid
     grid2.classList.add("selectable");
     playerCanShoot = true;   
