@@ -40,6 +40,8 @@ let statusText = "";
 // Turn counter
 let turn = 0;
 
+let sizes = [];
+
 // Sound effects
 const boom = new Audio("./assets/audio/boom.mp3");
 const splash = new Audio("./assets/audio/splash.mp3");
@@ -58,25 +60,20 @@ function init() {
     generateGrid(grid1);
     generateGrid(grid2);
     // Spawn in the ships on both grids
-    spawnShips(grid1);
-    spawnShips(grid2);
+    getShipConfig();
     // Reset the turn counter
     turn = 0;
-    // Update the on-screen counters
-    incrementTurnCounter();
-    updateHitMissCount();
-    p1Health.innerText = `${p1Ships.length} ships remaining.`;
-    p2Health.innerText = `${p2Ships.length} ships remaining.`;
+    clearCounters();
 
     // Prompt the player to begin moving their ships into position
     setStatus("Position your ships! Press 'R' while moving a ship to rotate.");
     // Enable ship movement
     dragEnabled = true;
-    grid1.querySelectorAll('.ship').forEach(ship => {ship.classList.add('draggable')});
     // Reset temporary ship position
     tempPrevPos = [];
-    // Show the "Ready" button, hide the "Reset" button
+    // Show the "Ready" button and ship menu, hide the "Reset" button
     document.getElementById('ready-button').style.display = 'block';
+    document.getElementById('ship-builder').style.display = 'flex';
     document.getElementById('reset-button').style.display = 'none';
 }
 
@@ -89,8 +86,13 @@ function runGame() {
     begin.currentTime = 0;
     begin.play();
 
-    // Hide the 'Ready' button
+    // Update the on-screen counters
+    incrementTurnCounter();
+    updateHitMissCount();
+
+    // Hide the 'Ready' button and ship menu
     document.getElementById('ready-button').style.display = 'none';
+    document.getElementById('ship-builder').style.display = 'none';
     // Allow the user to click cells on the CPU's grid
     grid2.classList.add("selectable");
     playerCanShoot = true;   
@@ -154,7 +156,9 @@ function generateGrid(target) {
 // Function to spawn the player's ships in randomized positions.
 function spawnShips(target) {
     // Hardcoded ship dimensions.
-    const sizes = [[1,1], [1,1], [1,1], [1,1], [2,1], [2,1], [2,1], [3,1], [3,1], [4,1]];
+    // const sizes = [[1,1], [2,1], [2,1], [2,1], [3,1], [3,1], [4,1], [4,1], [5,1]];
+
+    // const sizes = [ [5,1], [4,1], [3,1], [3,1], [2,1] ];
 
     // Get the 'owner' of the grid we're placing ships on: either p1 or p2.
     const owner = target.getAttribute('owner');
@@ -207,6 +211,7 @@ function spawnShips(target) {
         // Make the ship draggable if it belongs to the player.
         if (owner == 'p1') {
             ship.addEventListener('mousedown', dragStart);
+            ship.classList.add('draggable');
         }
         
         // Increment counter
@@ -261,6 +266,14 @@ function failsafe() {
     let i = 0;
     let playerPlacementInvalid = false;
 
+    if (p1Ships.length <= 0) {
+        setTempStatus('You must have ships on the board!');
+        // Play sound
+        err.currentTime = 0;
+        err.play();
+        return true;
+    }
+
     // Iterate over each of the players ships
     p1Ships.forEach(ship => {
         // Get individual x/y values.
@@ -279,6 +292,9 @@ function failsafe() {
     // If there are any invalid placements, flash a message to the user and return the appropriate true/false value
     if (playerPlacementInvalid) {
         setTempStatus('You have overlapping ships! Please move them.');
+        // Play sound
+        err.currentTime = 0;
+        err.play();
     }
 
     return playerPlacementInvalid;
@@ -829,6 +845,36 @@ function updateHitMissCount() {
 function incrementTurnCounter() {
     turn++;
     turnCounter.innerText = `Turn ${turn}`;
+}
+
+function clearCounters(){
+    turnCounter.innerText = '';
+    p1Hits.innerText = '';
+    p1Misses.innerText = '';
+    p2Hits.innerText = '';
+    p2Misses.innerText = '';
+}
+
+function getShipConfig() {
+    const carriers = document.getElementById('carriers').value;
+    const battleships = document.getElementById('battleships').value;
+    const cruisers = document.getElementById('cruisers').value;
+    const destroyers = document.getElementById('destroyers').value;
+    const submarines = document.getElementById('submarines').value;
+
+    sizes = [];
+
+    for (let i = 0; i < carriers; i++) { sizes.push([5,1]); }
+    for (let i = 0; i < battleships; i++) { sizes.push([4,1]); }
+    for (let i = 0; i < cruisers; i++) { sizes.push([3,1]); }
+    for (let i = 0; i < destroyers; i++) { sizes.push([2,1]); }
+    for (let i = 0; i < submarines; i++) { sizes.push([1,1]); }
+
+    // Spawn in the ships on both grids
+    spawnShips(grid1);
+    spawnShips(grid2);
+    p1Health.innerText = `${p1Ships.length} ships remaining.`;
+    p2Health.innerText = `${p2Ships.length} ships remaining.`;
 }
 
 // Function to detect keypresses. Used to trigger rotation when R is pressed.
