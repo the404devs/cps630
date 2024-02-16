@@ -168,6 +168,8 @@ function spawnShips(target) {
     // Ship indexer.
     let i = 0;
 
+    let overflowWarn = false;
+
     // Delete any existing ships.
     removeExistingShips(target);
 
@@ -188,11 +190,16 @@ function spawnShips(target) {
         
         // Continually generate a random set of coordinates to place this ship at
         // until a position is found that doesn't overlap other ships.
+        let attempts = 0;
         do {
             x = rng(gridSize - w);
             y = rng(gridSize - l);
-        } while (checkOverlapping(otherShips, [x, y, x+w, y+l]));
+            attempts++;
+        } while (checkOverlapping(otherShips, [x, y, x+w, y+l]) && attempts < 10000);
 
+        if (attempts >= 10000) {
+            overflowWarn = true;
+        }
         // Create a ship element
         const ship = document.createElement('div');
         // Give it a class of 'p1' or 'p2', we style ships differently depending on who they belong to.
@@ -219,6 +226,12 @@ function spawnShips(target) {
         // Increment counter
         i++;
     });
+
+    if (overflowWarn) {
+        err.currentTime = 0;
+        err.play();
+        setTempStatus("WARNING: The board is overfilled. The CPU may have overlapping ships.");
+    }
 }
 
 /* Function to check if a given rectangle overlaps a ship in a given list of ships.
@@ -860,6 +873,7 @@ function clearCounters(){
 function getShipConfig() {
     const carriers = document.getElementById('carriers').value;
     const battleships = document.getElementById('battleships').value;
+    const bases = document.getElementById('bases').value;
     const cruisers = document.getElementById('cruisers').value;
     const destroyers = document.getElementById('destroyers').value;
     const submarines = document.getElementById('submarines').value;
@@ -871,6 +885,7 @@ function getShipConfig() {
     for (let i = 0; i < cruisers; i++) { sizes.push([3,1]); }
     for (let i = 0; i < destroyers; i++) { sizes.push([2,1]); }
     for (let i = 0; i < submarines; i++) { sizes.push([1,1]); }
+    for (let i = 0; i < bases; i++) { sizes.push([2,2]); }
 
     // Spawn in the ships on both grids
     spawnShips(grid1);

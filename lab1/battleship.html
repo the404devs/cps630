@@ -31,29 +31,34 @@
     <div id="ship-builder">
         <h2>Warship Configuration:</h2>
         <div class="group">
-            <label for="five">5 cells</label>
-            <label for="five">Carriers:</label>
-            <input class="ship-count" type="number" max="5" min="0" value="1" name="five" id="carriers" onchange="getShipConfig()">
+            <label>5 x 1</label>
+            <label>Carriers:</label>
+            <input class="ship-count" type="number" max="5" min="0" value="1" id="carriers" onchange="getShipConfig()">
         </div>
         <div class="group">
-            <label for="four">4 cells</label>
-            <label for="four">Battleships:</label>
-            <input class="ship-count" type="number" max="5" min="0" value="2" name="four" id="battleships" onchange="getShipConfig()">
+            <label>4 x 1</label>
+            <label>Battleships:</label>
+            <input class="ship-count" type="number" max="5" min="0" value="2" id="battleships" onchange="getShipConfig()">
         </div>
         <div class="group">
-            <label for="three">3 cells</label>
-            <label for="three">Cruisers:</label>
-            <input class="ship-count" type="number" max="5" min="0" value="3" name="three" id="cruisers" onchange="getShipConfig()">
+            <label>3 x 1</label>
+            <label>Cruisers:</label>
+            <input class="ship-count" type="number" max="5" min="0" value="3" id="cruisers" onchange="getShipConfig()">
         </div>
         <div class="group">
-            <label for="two">2 cells</label>
-            <label for="two">Destroyers:</label>
-            <input class="ship-count" type="number" max="10" min="0" value="4" name="two" id="destroyers" onchange="getShipConfig()">
+            <label>2 x 1</label>
+            <label>Destroyers:</label>
+            <input class="ship-count" type="number" max="5" min="0" value="4" id="destroyers" onchange="getShipConfig()">
         </div>
         <div class="group">
-            <label for="one">1 cell </label>
-            <label for="one">Submarines:</label>
-            <input class="ship-count" type="number" max="10" min="0" value="0" name="one" id="submarines" onchange="getShipConfig()">
+            <label>1 x 1 </label>
+            <label>Submarines:</label>
+            <input class="ship-count" type="number" max="10" min="0" value="0" id="submarines" onchange="getShipConfig()">
+        </div>
+        <div class="group">
+            <label>2 x 2 </label>
+            <label>Naval Bases:</label>
+            <input class="ship-count" type="number" max="2" min="0" value="0" id="bases" onchange="getShipConfig()">
         </div>
         <button id="randomize-button" onclick="getShipConfig()">Randomize Positions</button>
     </div>
