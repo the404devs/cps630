@@ -357,6 +357,9 @@ function cellClicked(e) {
         } else {
             // This cell has previously been shot.
             setTempStatus("Cannot shoot there!");
+            // Play sound
+            err.currentTime = 0;
+            err.play();
         }
     }
 }
@@ -871,21 +874,21 @@ function clearCounters(){
 }
 
 function getShipConfig() {
+    const bases = document.getElementById('bases').value;
     const carriers = document.getElementById('carriers').value;
     const battleships = document.getElementById('battleships').value;
-    const bases = document.getElementById('bases').value;
     const cruisers = document.getElementById('cruisers').value;
     const destroyers = document.getElementById('destroyers').value;
     const submarines = document.getElementById('submarines').value;
 
     sizes = [];
 
+    for (let i = 0; i < bases; i++) { sizes.push([2,2]); }
     for (let i = 0; i < carriers; i++) { sizes.push([5,1]); }
     for (let i = 0; i < battleships; i++) { sizes.push([4,1]); }
     for (let i = 0; i < cruisers; i++) { sizes.push([3,1]); }
     for (let i = 0; i < destroyers; i++) { sizes.push([2,1]); }
     for (let i = 0; i < submarines; i++) { sizes.push([1,1]); }
-    for (let i = 0; i < bases; i++) { sizes.push([2,2]); }
 
     // Spawn in the ships on both grids
     spawnShips(grid1);
