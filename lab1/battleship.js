@@ -40,6 +40,7 @@ let statusText = "";
 // Turn counter
 let turn = 0;
 
+// List of ship sizes, used when generating the ships on the grids.
 let sizes = [];
 
 // Sound effects
@@ -865,6 +866,7 @@ function incrementTurnCounter() {
     turnCounter.innerText = `Turn ${turn}`;
 }
 
+// Function to clear the text within the on-screen counters
 function clearCounters(){
     turnCounter.innerText = '';
     p1Hits.innerText = '';
@@ -873,7 +875,9 @@ function clearCounters(){
     p2Misses.innerText = '';
 }
 
+// Function to get the values from the user's chosen config, in order to spawn the correct number of ships
 function getShipConfig() {
+    // Grab values from the form
     const bases = document.getElementById('bases').value;
     const carriers = document.getElementById('carriers').value;
     const battleships = document.getElementById('battleships').value;
@@ -881,8 +885,10 @@ function getShipConfig() {
     const destroyers = document.getElementById('destroyers').value;
     const submarines = document.getElementById('submarines').value;
 
+    // Clear the global sizes array
     sizes = [];
 
+    // Add the correct amount of each ship type to the array
     for (let i = 0; i < bases; i++) { sizes.push([2,2]); }
     for (let i = 0; i < carriers; i++) { sizes.push([5,1]); }
     for (let i = 0; i < battleships; i++) { sizes.push([4,1]); }
@@ -893,6 +899,7 @@ function getShipConfig() {
     // Spawn in the ships on both grids
     spawnShips(grid1);
     spawnShips(grid2);
+    // Show the total number of ships
     p1Health.innerText = `${p1Ships.length} ships remaining.`;
     p2Health.innerText = `${p2Ships.length} ships remaining.`;
 }
@@ -927,10 +934,11 @@ function setTheme() {
     }
 }
 
+
+// Event listeners
 document.addEventListener('DOMContentLoaded', function() { init(); });
 document.addEventListener('mousemove', dragHandler);
 document.addEventListener('mouseup', drop);
-document.addEventListener('touchend', drop, {passive: false});
 document.addEventListener('keydown', keyHandler);
 
 // Detect system light/dark mode change 
