@@ -9,6 +9,7 @@ const Weather = () => {
     const handleSubmit = (event) => {
         event.preventDefault();
         const targetCity = document.getElementById('city-input').value;
+        document.getElementById('city-input').value = "";
         setCity(targetCity);
       }
     
@@ -31,6 +32,7 @@ const Weather = () => {
         <div>
             <form onSubmit={handleSubmit}>
                 <label>Enter location: 
+                    <br></br>
                     <input type='text' id='city-input' />
                 </label>
 
@@ -42,11 +44,12 @@ const Weather = () => {
     return (
         <div>
             <h2>Weather in {city}</h2>
-            <p>Temperature: {weather.main.temp}</p>
+            <p>Temperature: {weather.main.temp}°C</p>
             <p>Conditions: {weather.weather[0].main}</p>
 
             <form onSubmit={handleSubmit}>
                 <label>Enter location: 
+                    <br></br>
                     <input type='text' id='city-input' />
                 </label>
 

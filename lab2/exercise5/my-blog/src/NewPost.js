@@ -22,15 +22,17 @@ function NewPost({onAddPost}) {
     };
 
     return (
-        <div>
+        <div className="content">
             <h2>Add a new post:</h2>
             <form onSubmit={handleSubmit}>
                 <div>
                     <label>Title:</label>
+                    <br></br>
                     <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
                 </div>
                 <div>
                     <label>Content:</label>
+                    <br></br>
                     <textarea value={content} onChange={(e) => setContent(e.target.value)} />
                 </div>
                 <button type="submit">Add Post</button>

@@ -4,7 +4,7 @@ function Home () {
     return (
         <div>
             <h2>Welcome to the blog!</h2>
-            <p>dfszgxfhcgbhjk</p>
+            <p>This is a basic blog app built with React.</p>
         </div>
     );
 }

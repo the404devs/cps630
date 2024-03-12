@@ -25,7 +25,8 @@ app.get('/api/posts', async (req, res) => {
 
 app.get('/api/homeData', (req, res) => {
     const homeData = {
-        message: "Welcome!"
+        header: "Welcome!",
+        content: "This is a blog app written using React and MongoDB."
     };
     res.json(homeData);
 });

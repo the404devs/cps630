@@ -21,11 +21,11 @@ function Blog() {
     
 
     return (
-        <div>
+        <div className='content'>
             <h2>Blog Posts</h2>
             {
                 posts.map((post) => (
-                    <div key={post.id}>
+                    <div className='post' key={post.id}>
                         <h3>{post.title}</h3>
                         <p>{post.content}</p>
                     </div>

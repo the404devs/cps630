@@ -5,8 +5,10 @@ const Layout = () => {
     <>
       <nav>
             <Link to="/">Home</Link>
+            <span className="spacer">⋄</span>
             <Link to="/blog">Blog</Link>
-            <Link to="/new-post">Add new post</Link>
+            <span className="spacer">⋄</span>
+            <Link to="/new-post">Add New Post</Link>
       </nav>
 
       <Outlet />
