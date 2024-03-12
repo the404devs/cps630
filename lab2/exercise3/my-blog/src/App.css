@@ -1,0 +1,8 @@
+nav > a {
+  padding: 5px;
+  border-right:1px solid;
+}
+
+nav > a:last-child {
+  border-right: none;
+}
